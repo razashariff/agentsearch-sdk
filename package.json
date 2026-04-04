@@ -1,0 +1,34 @@
+{
+  "name": "agentsearch",
+  "version": "1.0.0",
+  "description": "Register your AI agent with AgenticSearch. One command: L0 to L1. Add signing: L2. Zero config.",
+  "main": "index.js",
+  "bin": {
+    "agentsearch": "./cli.js"
+  },
+  "author": "Raza Sharif <contact@agentsign.dev> (https://cybersecai.co.uk)",
+  "license": "MIT",
+  "keywords": [
+    "agentsearch",
+    "mcp",
+    "agent",
+    "trust",
+    "ecdsa",
+    "identity",
+    "search",
+    "cybersecai",
+    "agentsign"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/razashariff/agentsearch-sdk"
+  },
+  "homepage": "https://agentsearch.cybersecai.co.uk",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node cli.js",
+    "test": "node test.js"
+  }
+}
