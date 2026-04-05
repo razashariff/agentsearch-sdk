@@ -267,4 +267,93 @@ async function remove(sourceId, reason, contact) {
   return apiCall('/api/remove', { sourceId, reason, contact });
 }
 
-module.exports = { generateKeys, signData, register, search, report, remove, SEARCH_API };
+// ============================================================================
+// MCP Server (stdio) -- agents discover tools through AgenticSearch
+// ============================================================================
+
+/**
+ * Run AgenticSearch as an MCP server over stdio.
+ * Add to Claude Desktop, Cursor, or any MCP client:
+ * { "command": "npx", "args": ["-y", "@proofxhq/agentsearch", "serve"] }
+ *
+ * Agents can then search for capabilities, check trust, and verify sources
+ * through standard MCP tool calls.
+ */
+function serve() {
+  const TOOLS = [
+    { name: 'agentsearch_find', description: 'Search for MCP servers and agent tools by capability. Returns trust-scored results ranked by cryptographic trust, not links.', inputSchema: { type: 'object', properties: { query: { type: 'string', description: 'What capability are you looking for? e.g. "payment processing", "weather API", "code analysis"' }, minTrust: { type: 'number', description: 'Minimum trust score 0-1. Default 0. Set higher to filter untrusted sources.' }, maxResults: { type: 'number', description: 'Max results. Default 10.' } }, required: ['query'] } },
+    { name: 'agentsearch_check', description: 'Check the trust level and any warnings on a specific source before using it.', inputSchema: { type: 'object', properties: { sourceId: { type: 'string', description: 'Source ID to check' } }, required: ['sourceId'] } },
+    { name: 'agentsearch_stats', description: 'Get AgenticSearch index statistics: how many sources indexed, how many signed, how many unsigned.', inputSchema: { type: 'object', properties: {} } },
+  ];
+
+  let buffer = '';
+  process.stdin.setEncoding('utf8');
+  process.stdin.on('data', (chunk) => {
+    buffer += chunk;
+    let idx;
+    while ((idx = buffer.indexOf('\n')) !== -1) {
+      const line = buffer.slice(0, idx).trim();
+      buffer = buffer.slice(idx + 1);
+      if (line) processMessage(line);
+    }
+  });
+
+  function send(msg) { process.stdout.write(JSON.stringify(msg) + '\n'); }
+
+  async function processMessage(line) {
+    let msg;
+    try { msg = JSON.parse(line); } catch { return; }
+    const { id, method, params } = msg;
+
+    switch (method) {
+      case 'initialize':
+        send({ jsonrpc: '2.0', id, result: { protocolVersion: '2024-11-05', capabilities: { tools: {} }, serverInfo: { name: 'agentsearch', version: '1.0.1' } } });
+        break;
+      case 'notifications/initialized':
+        break;
+      case 'tools/list':
+        send({ jsonrpc: '2.0', id, result: { tools: TOOLS } });
+        break;
+      case 'tools/call': {
+        const { name, arguments: args } = params || {};
+        try {
+          let result;
+          if (name === 'agentsearch_find') {
+            const data = await search(args.query || '', { minTrust: args.minTrust, maxResults: args.maxResults });
+            const results = (data.results || []).map(r => `${r.name} [${r.trustLevel}] ${r.signed ? 'SIGNED' : 'UNSIGNED'}\n  ${r.description}\n  Capabilities: ${r.capabilities.join(', ')}\n  ${r.warnings && r.warnings.length ? 'WARNINGS: ' + r.warnings.map(w => w.label).join(', ') : 'No warnings'}`);
+            result = { content: [{ type: 'text', text: results.length ? `${results.length} results:\n\n${results.join('\n\n')}` : 'No results found.' }] };
+          } else if (name === 'agentsearch_check') {
+            const data = await apiCall('/api/search', { query: args.sourceId, maxResults: 1 });
+            const source = (data.results || [])[0];
+            if (source) {
+              const warnings = source.warnings && source.warnings.length ? source.warnings.map(w => `${w.label}: ${w.reason}`).join('\n  ') : 'None';
+              result = { content: [{ type: 'text', text: `${source.name}\nTrust: ${source.trustLevel} (${(source.trustScore * 100).toFixed(0)}%)\nSigned: ${source.signed}\nWarnings: ${warnings}\nCapabilities: ${source.capabilities.join(', ')}` }] };
+            } else {
+              result = { content: [{ type: 'text', text: 'Source not found in AgenticSearch index.' }] };
+            }
+          } else if (name === 'agentsearch_stats') {
+            const data = await apiCall('/api/search', { query: 'mcp', maxResults: 1 });
+            result = { content: [{ type: 'text', text: `AgenticSearch index: agentsearch.cybersecai.co.uk\nMore info: agentsearch.cybersecai.co.uk/trust` }] };
+          } else {
+            result = { content: [{ type: 'text', text: 'Unknown tool: ' + name }], isError: true };
+          }
+          send({ jsonrpc: '2.0', id, result });
+        } catch (e) {
+          send({ jsonrpc: '2.0', id, result: { content: [{ type: 'text', text: 'Error: ' + e.message }], isError: true } });
+        }
+        break;
+      }
+      case 'ping':
+        send({ jsonrpc: '2.0', id, result: {} });
+        break;
+      default:
+        if (id) send({ jsonrpc: '2.0', id, error: { code: -32601, message: 'Method not found: ' + method } });
+        break;
+    }
+  }
+
+  process.stderr.write('AgenticSearch MCP Server v1.0.1 running on stdio\n');
+  process.stderr.write('agentsearch.cybersecai.co.uk | CyberSecAI Ltd\n');
+}
+
+module.exports = { generateKeys, signData, register, search, report, remove, serve, SEARCH_API };

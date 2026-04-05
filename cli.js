@@ -5,17 +5,24 @@
 
 'use strict';
 
-const { generateKeys, register, search, report, remove, SEARCH_API } = require('./index');
+const { generateKeys, register, search, report, remove, serve, SEARCH_API } = require('./index');
 
 const args = process.argv.slice(2);
 const cmd = args[0];
 
 async function main() {
+  // MCP serve mode -- no stdout output except JSON-RPC
+  if (cmd === 'serve') {
+    serve();
+    return;
+  }
+
   console.log('agentsearch v1.0.1 -- CyberSecAI Ltd');
   console.log(SEARCH_API + '\n');
 
   if (!cmd || cmd === 'help' || cmd === '--help' || cmd === '-h') {
     console.log('Usage:');
+    console.log('  agentsearch serve                   Run as MCP server (add to Claude/Cursor)');
     console.log('  agentsearch register <sourceId>     Register/claim your agent');
     console.log('  agentsearch keygen                  Generate identity keys only');
     console.log('  agentsearch search <query>          Search the trust-scored index');
