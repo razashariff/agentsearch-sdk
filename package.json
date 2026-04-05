@@ -7,7 +7,7 @@
     "agentsearch": "./cli.js"
   },
   "author": "Raza Sharif <contact@agentsign.dev> (https://cybersecai.co.uk)",
-  "license": "MIT",
+  "license": "BSL-1.1",
   "keywords": [
     "agentsearch",
     "mcp",
