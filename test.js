@@ -32,6 +32,20 @@ function run() {
   assert('private key file exists', fs.existsSync(path.join(testDir, 'agent.key')));
   assert('public key file exists', fs.existsSync(path.join(testDir, 'agent.pub')));
 
+  // 1b. Security files
+  console.log('\n-- Security Files --');
+  assert('.gitignore created', fs.existsSync(path.join(testDir, '.gitignore')));
+  assert('README.md created', fs.existsSync(path.join(testDir, 'README.md')));
+  const gitignore = fs.readFileSync(path.join(testDir, '.gitignore'), 'utf8');
+  assert('.gitignore blocks agent.key', gitignore.includes('agent.key'));
+  assert('.gitignore blocks *.key', gitignore.includes('*.key'));
+  const readme = fs.readFileSync(path.join(testDir, 'README.md'), 'utf8');
+  assert('README warns about private key', readme.includes('NEVER share'));
+  assert('README has recovery guidance', readme.includes('lose my private key'));
+  assert('README has compromise guidance', readme.includes('steals my private key'));
+  assert('README has best practices', readme.includes('Best practices'));
+  assert('README has contact info', readme.includes('contact@agentsign.dev'));
+
   // 2. Key reuse
   console.log('\n-- Key Reuse --');
   const keys2 = generateKeys(testDir);

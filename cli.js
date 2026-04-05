@@ -11,7 +11,7 @@ const args = process.argv.slice(2);
 const cmd = args[0];
 
 async function main() {
-  console.log('agentsearch v1.0.0 -- CyberSecAI Ltd');
+  console.log('agentsearch v1.0.1 -- CyberSecAI Ltd');
   console.log(SEARCH_API + '\n');
 
   if (!cmd || cmd === 'help' || cmd === '--help' || cmd === '-h') {
@@ -23,9 +23,9 @@ async function main() {
     console.log('  agentsearch remove <sourceId>       Request removal from index');
     console.log('');
     console.log('Examples:');
-    console.log('  npx agentsearch register my-mcp-server');
-    console.log('  npx agentsearch search "payment processing"');
-    console.log('  npx agentsearch report sketchy-api');
+    console.log('  npx @proofxhq/agentsearch register my-mcp-server');
+    console.log('  npx @proofxhq/agentsearch search "payment processing"');
+    console.log('  npx @proofxhq/agentsearch report sketchy-api');
     console.log('');
     console.log('Keys are stored in .agentsearch/ in your project directory.');
     console.log('Your private key never leaves your machine.');
@@ -37,14 +37,29 @@ async function main() {
   if (cmd === 'keygen') {
     const keys = generateKeys();
     if (keys.existing) {
-      console.log('Keys already exist at ' + keys.keyDir);
-      console.log('Public key:\n' + keys.publicKey);
+      console.log('Keys already exist at ' + keys.keyDir + '/');
+      console.log('');
+      console.log('  agent.pub  -- Public key (safe to share)');
+      console.log('  agent.key  -- PRIVATE KEY (keep safe, never commit)');
+      console.log('  .gitignore -- Auto-protects private key from git');
+      console.log('  README.md  -- Security guidance');
     } else {
-      console.log('Generated ECDSA P-256 key pair');
-      console.log('Saved to: ' + keys.keyDir);
-      console.log('Private key: ' + keys.keyDir + '/agent.key (keep secret)');
-      console.log('Public key:  ' + keys.keyDir + '/agent.pub');
-      console.log('\nPublic key:\n' + keys.publicKey);
+      console.log('Generated ECDSA P-256 key pair.');
+      console.log('');
+      console.log('Saved to: ' + keys.keyDir + '/');
+      console.log('');
+      console.log('  agent.pub  -- Public key (safe to share)');
+      console.log('  agent.key  -- PRIVATE KEY');
+      console.log('  .gitignore -- Auto-protects private key from git');
+      console.log('  README.md  -- Security guidance');
+      console.log('');
+      console.log('==========================================================');
+      console.log('  IMPORTANT: Keep agent.key safe. Do NOT commit to git.');
+      console.log('  Do NOT share it. Do NOT upload it anywhere.');
+      console.log('  If lost, you must re-register.');
+      console.log('  If stolen, contact contact@agentsign.dev immediately.');
+      console.log('  Back it up to encrypted storage or a password manager.');
+      console.log('==========================================================');
     }
     return;
   }
@@ -56,13 +71,26 @@ async function main() {
     try {
       const result = await register(sourceId, { contact: args[2] || '' });
       if (result.success) {
-        console.log('Registered successfully!');
-        console.log('Source ID:    ' + result.sourceId);
-        console.log('Trust Level:  ' + result.trustLevel);
-        console.log('Trust Score:  ' + result.trustScore);
-        console.log('Keys:         ' + result.keys.keyDir);
-        console.log(result.keys.existing ? '(Using existing keys)' : '(New keys generated)');
-        console.log('\n' + result.message);
+        console.log('Registered!');
+        console.log('');
+        console.log('  Source ID:    ' + result.sourceId);
+        console.log('  Trust Level:  ' + result.trustLevel);
+        console.log('  Trust Score:  ' + result.trustScore);
+        console.log('  Keys:         ' + result.keys.keyDir + '/');
+        console.log(result.keys.existing ? '  (Using existing keys)' : '  (New keys generated)');
+        console.log('');
+        console.log('Add this badge to your README:');
+        console.log('');
+        console.log('  [![AgenticSearch](https://agentsearch.cybersecai.co.uk/badge/' + result.sourceId + ')](https://agentsearch.cybersecai.co.uk/trust)');
+        console.log('');
+        console.log('==========================================================');
+        console.log('  Your private key is at: ' + result.keys.keyDir + '/agent.key');
+        console.log('  KEEP IT SAFE. Do NOT commit to git.');
+        console.log('  A .gitignore has been created to protect it.');
+        console.log('  Back it up to encrypted storage or a password manager.');
+        console.log('  If compromised, contact contact@agentsign.dev.');
+        console.log('  Read ' + result.keys.keyDir + '/README.md for full guidance.');
+        console.log('==========================================================');
       } else {
         console.error('Registration failed: ' + result.error);
         if (result.keys) console.log('Keys at: ' + result.keys.keyDir);

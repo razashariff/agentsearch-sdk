@@ -1,6 +1,6 @@
 {
   "name": "@proofxhq/agentsearch",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Register your AI agent with AgenticSearch. One command: L0 to L1. Add signing: L2. Zero config.",
   "main": "index.js",
   "bin": {
